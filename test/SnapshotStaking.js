@@ -1,7 +1,10 @@
 const { expect } = require("chai");
-const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, time, helpers } = require("@nomicfoundation/hardhat-network-helpers");
 const { ethers } = require("hardhat");
 const { string } = require("hardhat/internal/core/params/argumentTypes");
+const { BigInteger } = require("bignumber/lib/rsa");
+const { seconds } = require("@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time/duration");
+const { BigNumber } = require("@ethersproject/bignumber");
 
 describe("Snapshot staking contract", function () {
 
@@ -57,10 +60,42 @@ describe("Snapshot staking contract", function () {
 
         await skipTime(31536000);
 
-        await staking.unStakeRequest(0, format(1000));
-        let pending = await staking.pendingReward(0, owner.address);
+        await staking.unstakeRequest(0, format(400));
 
-        console.log(pending);
+        await skipTime(60);
+
+        await staking.unstakeRequest(0, format(600));
+
+        let unlock = await staking.getUserUnlocks(0);
+
+        var array = [];
+        for(var i = 0; i < unlock.length; i++) {
+            array.push(unlock[i].toString());
+        }
+
+        expect((await staking.getUserUnlockAmount(0, array[0])).toString())
+            .eq(format(400));
+
+        expect((await staking.getUserUnlockAmount(0, array[1])).toString())
+            .eq(format(600));
+
+        await skipTime(302400);
+
+        await expect(staking.unstake(0, array[0])).to.be.revertedWith("Not yet time to withdraw");
+
+        // skip a week
+        await skipTime(302400);
+
+        let oldBalance = BigNumber.from((await token.balanceOf(owner.address)).toString());
+
+        await staking.unstake(0, array[0]);
+
+        let newBalance = BigNumber.from((await token.balanceOf(owner.address)).toString());
+
+        expect(oldBalance.add(BigNumber.from(format(400)))).eq(BigNumber.from(format(4400)));
+
+        expect((await staking.getUserUnlockAmount(0, array[0])))
+            .eq(0); 
     });
 });
 

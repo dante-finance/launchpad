@@ -54,6 +54,16 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
     {
     }
 
+    function getUserUnlocks(uint pid) external view returns (uint[] memory)
+    {
+        return userInfo[pid][msg.sender].timestamps;
+    }
+
+    function getUserUnlockAmount(uint pid, uint timestamp) external view returns (uint)
+    {
+        return userInfo[pid][msg.sender].unlocks[timestamp];
+    }
+
     function poolLength() external view returns (uint256) {
         return poolInfo.length;
     }
@@ -172,14 +182,22 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         emit Deposit(sender, _pid, _amount);
     }
 
-    function unStakeRequest(
-        uint256 _pid, 
-        uint256 _amount)
+    function unstakeRequest(
+        uint256 pid, 
+        uint256 amount)
         nonReentrant
         external
     {
-        require(_amount > 0);
+        require(amount > 0);
+        require(_unstakeRequest(pid, amount));
+    }
 
+    function _unstakeRequest(
+        uint256 _pid, 
+        uint256 _amount)
+        private
+        returns (bool)
+    {
         UserInfo storage user = userInfo[_pid][_msgSender()];
 
         require(user.available >= _amount, "not enough available");
@@ -191,14 +209,26 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         user.timestamps.push(timestamp);
         user.unlocks[timestamp] = _amount;
         user.available -= _amount;
+
+        return true;
+    }
+
+    function unstake(
+        uint256 pid, 
+        uint256 timestamp)
+        external    
+        nonReentrant
+    {
+        require(block.timestamp >= timestamp, "Not yet time to withdraw");
+        require(_unstake(pid, timestamp));
     }
 
     // Withdraw LP tokens from snapshot contract.
-    function unStake(
+    function _unstake(
         uint256 _pid, 
         uint256 _timestamp)
-        nonReentrant
-        external
+        private
+        returns (bool)
     {
         address sender = _msgSender();
         PoolInfo storage pool = poolInfo[_pid];
@@ -234,9 +264,9 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         stakedAmount[address(pool.stakeToken)] -= _amount;
 
         emit Withdraw(sender, _pid, _amount);
+
+        return true;
     }
-
-
 
     ////////////////////////////////////////////////////////////////////////
     //                        ADMIN FUNCTIONS                             //

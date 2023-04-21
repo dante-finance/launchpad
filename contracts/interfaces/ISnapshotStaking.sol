@@ -14,8 +14,11 @@ interface ISnapshotStaking
         uint256 _apr
     ) external;
     function stake(uint256 _pid, uint256 _amount) external;
-    function unStake(uint256 _pid, uint256 _amount) external;
+    function unstakeRequest(uint256 _pid, uint256 _amount) external;
+    function unstake(uint256 _pid, uint256 _amount) external;
     function emergencyWithdraw(uint256 _pid) external;
+    function getUserUnlocks(uint pid) external view returns (uint[] memory);
+    function getUserUnlockAmount(uint pid, uint timestamp) external view returns (uint);
 
     event AddPool(uint256 indexed pid, uint256 created);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
