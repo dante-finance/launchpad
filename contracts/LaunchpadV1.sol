@@ -100,7 +100,7 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
     modifier onlyFCFSPhase()
     {
         require(block.timestamp > endWhitelistPhase);
-        require(block.timestamp < endFCFSPhase);
+        require(block.timestamp <= endFCFSPhase);
         _;
     }
 
@@ -153,7 +153,7 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
     {
         require(amount > 0);
 
-        uint payment = _calcTotalPayment(amount);
+        uint payment = _convertToPaymentTokenAmount(amount);
         
         paymentToken.safeTransferFrom(user, address(this), payment);
 
@@ -171,7 +171,7 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
         return true;
     }
 
-    function _calcTotalPayment(uint256 amount) 
+    function _convertToPaymentTokenAmount(uint256 amount) 
         private 
         view 
         returns (uint256)
@@ -180,6 +180,22 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
         uint launchedTokenDecimals = ERC20(address(launchedToken)).decimals();
         
         return amount * price / 100 / 10 ** (launchedTokenDecimals - paymentTokenDecimals);
+    }
+
+    function getTotalClaimedInPaymentTokens() 
+        external 
+        view    
+        returns (uint256)
+    {
+        return _convertToPaymentTokenAmount(totalClaimed);
+    }
+
+    function getTotalClaimableInPaymentTokens() 
+        external 
+        view 
+        returns (uint256)
+    {
+        return _convertToPaymentTokenAmount(totalClaimable);
     }
 
     // Releases claim for a single address

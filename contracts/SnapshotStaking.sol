@@ -90,7 +90,6 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
                 
         if (block.timestamp <= pool.startTime) 
         {
-            //console.log("exit");
             return (0, user.lastRewardTime);
         }
         
@@ -145,13 +144,22 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
 
     // Deposit LP tokens to snapshot staking
     function stake(
-        uint256 _pid, 
-        uint256 _amount)
+        uint256 pid, 
+        uint256 amount)
         nonReentrant
         external
     {
-        require(_amount > 0);
+        require(amount > 0);
+        require(_stake(pid, amount));
+    }
 
+    // Deposit LP tokens to snapshot staking
+    function _stake(
+        uint256 _pid, 
+        uint256 _amount)
+        private
+        returns (bool)
+    {
         address sender = _msgSender();
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][sender];
@@ -180,6 +188,8 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         stakedAmount[address(pool.stakeToken)] += _amount;
 
         emit Deposit(sender, _pid, _amount);
+
+        return true;
     }
 
     function unstakeRequest(
