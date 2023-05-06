@@ -15,7 +15,7 @@ interface ISnapshotStaking
     ) external;
     function stake(uint256 _pid, uint256 _amount) external;
     function unstakeRequest(uint256 _pid, uint256 _amount) external;
-    function unstake(uint256 _pid, uint256 _amount) external;
+    function withdraw(uint256 _pid) external;
     function emergencyWithdraw(uint256 _pid) external;
     function getUserUnlocks(uint pid) external view returns (uint[] memory);
     function getUserUnlockAmount(uint pid, uint timestamp) external view returns (uint);

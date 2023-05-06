@@ -54,12 +54,12 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
     {
     }
 
-    function getUserUnlocks(uint pid) external view returns (uint[] memory)
+    function getUserUnlocks(uint pid) public view returns (uint[] memory)
     {
         return userInfo[pid][msg.sender].timestamps;
     }
 
-    function getUserUnlockAmount(uint pid, uint timestamp) external view returns (uint)
+    function getUserUnlockAmount(uint pid, uint timestamp) public view returns (uint)
     {
         return userInfo[pid][msg.sender].unlocks[timestamp];
     }
@@ -223,29 +223,42 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         return true;
     }
 
-    function unstake(
-        uint256 pid, 
-        uint256 timestamp)
+    function withdraw(
+        uint256 pid)
         external    
         nonReentrant
     {
-        require(block.timestamp >= timestamp, "Not yet time to withdraw");
-        require(_unstake(pid, timestamp));
+        uint[] memory timestamps = getUserUnlocks(pid);
+        uint amount = 0;
+
+        UserInfo storage user = userInfo[pid][_msgSender()];
+
+        for(uint i = 0; i < timestamps.length; i++)
+        {
+            uint timestamp = timestamps[i];
+            uint unlock = getUserUnlockAmount(pid, timestamp);
+            
+            if(unlock > 0 && block.timestamp >= timestamp)
+            {
+                amount = amount + unlock;
+                user.unlocks[timestamp] = 0;
+            }
+        }
+
+        require(amount > 0, "No scheduled withdrawals");
+        require(_unstake(pid, amount, user));
     }
 
     // Withdraw LP tokens from snapshot contract.
     function _unstake(
         uint256 _pid, 
-        uint256 _timestamp)
+        uint256 _amount,
+        UserInfo storage user)
         private
         returns (bool)
     {
         address sender = _msgSender();
         PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][sender];
-
-        // amount of tokens set to unlock at this time
-        uint _amount = user.unlocks[_timestamp];
 
         require(
             _amount > 0,
@@ -267,7 +280,6 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         user.lastRewardTime = lastTime;
 
         user.amount -= _amount;
-        user.unlocks[_timestamp] = 0;
 
         pool.poolBalance -= _amount;
         pool.stakeToken.safeTransfer(sender, _amount);

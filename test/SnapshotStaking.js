@@ -81,14 +81,14 @@ describe("Snapshot staking contract", function () {
 
         await skipTime(302400);
 
-        await expect(staking.unstake(0, array[0])).to.be.revertedWith("Not yet time to withdraw");
+        await expect(staking.withdraw(0)).to.be.revertedWith("No scheduled withdrawals");
 
         // skip a week
         await skipTime(302400);
 
         let oldBalance = BigNumber.from((await token.balanceOf(owner.address)).toString());
 
-        await staking.unstake(0, array[0]);
+        await staking.withdraw(0);
 
         let newBalance = BigNumber.from((await token.balanceOf(owner.address)).toString());
 
