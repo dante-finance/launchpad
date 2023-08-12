@@ -13,20 +13,15 @@ describe("Launchpad V1 contract", function () {
         var now = await time.latest();
 
         const Token = await ethers.getContractFactory("Token");
-        const token = await Token.deploy(
-            now,
-            owner.address,
-            owner.address
-        );
+        const token = await Token.deploy();
 
         const LaunchpadToken = await ethers.getContractFactory("LaunchpadToken");
         const launchToken = await LaunchpadToken.deploy();
 
-        const PaymentToken = await ethers.getContractFactory("PaymentToken");
+        const PaymentToken = await ethers.getContractFactory("USDT");
         const paymentToken = await PaymentToken.deploy();
 
         const LaunchpadV1 = await ethers.getContractFactory("LaunchpadV1");
-    
         const launchpad = await LaunchpadV1.deploy();
 
         await launchToken.transfer(launchpad.address, "10000000000000000000000");

@@ -15,11 +15,7 @@ describe("Snapshot staking contract", function () {
         const staking = await SnapshotStaking.deploy();
         
         const Token = await ethers.getContractFactory("Token");
-        const token = await Token.deploy(
-            await time.latest(),
-            owner.address,
-            owner.address
-        );
+        const token = await Token.deploy();
         
         let start = await time.latest() + 1;
 

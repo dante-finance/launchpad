@@ -30,10 +30,10 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
     uint public startWhitelistPhase;
 
     // time the whitelist claiming period ends
-    uint public endWhitelistPhase;
+    uint public startFCFSPhase;
 
     // time the first come first served phase ends
-    uint public endFCFSPhase;
+    uint public endSale;
 
     // price of 1 payment token per launchpad token in basis points
     // 80  => 0.8 
@@ -93,21 +93,21 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
     modifier onlyWhitelistPhase()
     {
         require(block.timestamp >= startWhitelistPhase);
-        require(block.timestamp <= endWhitelistPhase);
+        require(block.timestamp <  startFCFSPhase);
         _;
     }
 
     modifier onlyFCFSPhase()
     {
-        require(block.timestamp > endWhitelistPhase);
-        require(block.timestamp <= endFCFSPhase);
+        require(block.timestamp >= startFCFSPhase);
+        require(block.timestamp <  endSale);
         _;
     }
 
     modifier onlyDistributionPhase()
     {
         require(vestingStartTimestamp > 0);
-        require(block.timestamp > vestingStartTimestamp);
+        require(block.timestamp >= vestingStartTimestamp);
         _;
     }
 
@@ -125,7 +125,6 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
     {
         address user = msg.sender;
 
-        require(amount > 0);
         require(allocated[user] >= amount, "User does not have a whitelist allocation.");
 
         require(_claim(user, amount));
@@ -152,10 +151,12 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
         returns (bool)
     {
         require(amount > 0);
+        require(totalClaimed + amount <= totalClaimable, "Claiming attempt exceeds total claimable amount!");
 
-        uint payment = _convertToPaymentTokenAmount(amount);
-        
-        paymentToken.safeTransferFrom(user, address(this), payment);
+        paymentToken.safeTransferFrom(
+            user,
+            address(this),
+            _convertToPaymentTokenAmount(amount));
 
         for(uint i = 0; i < vestingDurationPeriods.length; ++i)
         {
@@ -165,8 +166,6 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
         }        
 
         totalClaimed += amount;
-
-        require(totalClaimed <= totalClaimable, 'Claiming attempt exceeds totalClaimable amount!');
 
         return true;
     }
@@ -223,6 +222,8 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
             released[user][period] += amount;
             total += amount;
         }
+
+        require(total > 0, "No more tokens to release");
 
         launchedToken.safeTransfer(user, total);
 
@@ -310,9 +311,9 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
     }
 
     function setStartTime(
-        uint _time,
-        uint _whitelistDuration,
-        uint _fcfsDuration,
+        uint _whitelistSaleTimestamp,
+        uint _fcfsSaleTimestamp,
+        uint _endSaleTimestamp,
         uint _price) 
         external 
         onlyOwner 
@@ -321,9 +322,9 @@ contract LaunchpadV1 is Ownable, ReentrancyGuard
         onlyAllocationsDistributed
         returns(bool) 
     {        
-        startWhitelistPhase = _time;
-        endWhitelistPhase = startWhitelistPhase + _whitelistDuration;
-        endFCFSPhase = endWhitelistPhase + _fcfsDuration;
+        startWhitelistPhase = _whitelistSaleTimestamp;
+        startFCFSPhase = _fcfsSaleTimestamp;
+        endSale = _endSaleTimestamp;
         
         price = _price;
         

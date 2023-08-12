@@ -282,6 +282,7 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         user.amount -= _amount;
 
         pool.poolBalance -= _amount;
+
         pool.stakeToken.safeTransfer(sender, _amount);
         stakedAmount[address(pool.stakeToken)] -= _amount;
 
@@ -294,7 +295,8 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
     //                        ADMIN FUNCTIONS                             //
     ////////////////////////////////////////////////////////////////////////
 
-    function setCooldown(uint256 _cooldown)
+    function setCooldown(
+        uint256 _cooldown)
         external
         onlyOwner
     {
@@ -312,7 +314,13 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         external 
         onlyOwner 
     {
-        _add(_stakeToken, _rewardToken, _poolSize, _startTime, _endTime, _apr);
+        require(_add(
+            _stakeToken, 
+            _rewardToken, 
+            _poolSize, 
+            _startTime, 
+            _endTime, 
+            _apr));
     }
 
     function _add(
@@ -323,6 +331,7 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         uint256 _endTime,
         uint256 _apr) 
         private
+        returns (bool)
     {
         require(
             _startTime >= block.timestamp,
@@ -353,6 +362,8 @@ contract SnapshotStaking is ISnapshotStaking, Ownable, ReentrancyGuard
         );
 
         emit AddPool(poolInfo.length - 1, block.timestamp);
+
+        return true;
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
